@@ -44,6 +44,19 @@ class Settings(BaseSettings):
     ENABLE_ASYNC_TASKS: bool = True
     ENABLE_CACHING: bool = True
 
+    # Redis Caching Settings
+    REDIS_ENABLED: bool = True
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
+    REDIS_DB: int = 0
+    REDIS_PASSWORD: Optional[str] = None
+    REDIS_SOCKET_TIMEOUT: int = 5
+    REDIS_VALIDATION_TTL: int = 1800  # 30 minutes
+    REDIS_METRICS_TTL: int = 3600  # 1 hour
+    REDIS_DATASET_TTL: int = 7200  # 2 hours
+    REDIS_ANOMALY_TTL: int = 1800  # 30 minutes
+    REDIS_SESSION_TTL: int = 86400  # 24 hours
+
     class Config:
         env_file = ".env"
         case_sensitive = True

@@ -57,6 +57,12 @@ class Settings(BaseSettings):
     REDIS_ANOMALY_TTL: int = 1800  # 30 minutes
     REDIS_SESSION_TTL: int = 86400  # 24 hours
 
+    # Celery Async Task Settings
+    CELERY_BROKER_URL: str = "redis://localhost:6379/0"
+    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/1"
+    CELERY_ENABLE_UTC: bool = True
+    CELERY_TIMEZONE: str = "UTC"
+
     class Config:
         env_file = ".env"
         case_sensitive = True

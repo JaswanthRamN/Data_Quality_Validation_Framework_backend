@@ -19,6 +19,13 @@ pytz==2023.3
 requests==2.31.0
 alembic==1.12.1
 python-dotenv==1.0.0
-anthropic>=0.30.0
 httpx>=0.25.0
 celery[redis]>=5.3.4
+
+# AI Provider packages — install only the one you use
+# pip install google-generativeai   (Gemini — free tier)
+# pip install groq                   (Groq Llama — free tier)
+# pip install openai                 (OpenAI — pay-as-you-go)
+# pip install huggingface_hub        (HuggingFace — free tier)
+# pip install anthropic>=0.30.0      (Anthropic Claude — paid)
+# httpx is already above for Ollama (no extra package needed)

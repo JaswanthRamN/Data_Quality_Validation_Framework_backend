@@ -63,7 +63,32 @@ class Settings(BaseSettings):
 
     # ── Job Search Automation ────────────────────────────────────────────────
 
-    # Anthropic Claude — optional; system falls back to TF-IDF scoring if empty
+    # AI Provider selection — controls which LLM powers ATS analysis.
+    # Options: gemini | groq | openai | huggingface | ollama | anthropic | none
+    # Set the matching API key below. If key is missing, falls back to TF-IDF scoring.
+    AI_PROVIDER: str = "none"
+
+    # Google Gemini — free 1,500 req/day  →  https://ai.google.dev
+    GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-1.5-flash"
+
+    # Groq — free ~14,400 req/day (Llama 3)  →  https://console.groq.com
+    GROQ_API_KEY: str = ""
+    GROQ_MODEL: str = "llama-3.3-70b-versatile"
+
+    # OpenAI — pay-as-you-go, gpt-4o-mini ~$0.01 per 10 analyses
+    OPENAI_API_KEY: str = ""
+    OPENAI_MODEL: str = "gpt-4o-mini"
+
+    # HuggingFace Inference API — free tier  →  https://huggingface.co/settings/tokens
+    HUGGINGFACE_API_KEY: str = ""
+    HUGGINGFACE_MODEL: str = "mistralai/Mistral-7B-Instruct-v0.3"
+
+    # Ollama — local, completely free  →  https://ollama.ai  then: ollama pull llama3.2
+    OLLAMA_BASE_URL: str = "http://localhost:11434"
+    OLLAMA_MODEL: str = "llama3.2"
+
+    # Anthropic Claude — original option
     ANTHROPIC_API_KEY: str = ""
 
     # Master resume text — paste full resume here (supports multiline via env file)

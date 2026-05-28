@@ -70,7 +70,7 @@ class Settings(BaseSettings):
 
     # Google Gemini — free 1,500 req/day  →  https://ai.google.dev
     GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-1.5-flash"
+    GEMINI_MODEL: str = "gemini-2.0-flash"
 
     # Groq — free ~14,400 req/day (Llama 3)  →  https://console.groq.com
     GROQ_API_KEY: str = ""

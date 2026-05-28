@@ -2,7 +2,7 @@
 Multi-provider LLM abstraction layer.
 
 Set AI_PROVIDER in .env to one of:
-  gemini       — Google Gemini 1.5 Flash (free: 1,500 req/day)
+  gemini       — Google Gemini 2.0 Flash (free: 1,500 req/day)  [uses google-genai SDK]
   groq         — Groq Llama 3 (free: generous daily quota, very fast)
   openai       — OpenAI GPT-4o-mini (paid but ~$0.01 per 10 analyses)
   huggingface  — HuggingFace Inference API (free tier, Mistral/Llama)
@@ -65,25 +65,33 @@ class LLMProvider(ABC):
             return _parse_with_retry(raw2)
 
 
-# ── Google Gemini (free: 1,500 req/day on gemini-1.5-flash) ──────────────────
+# ── Google Gemini (free: 1,500 req/day on gemini-2.0-flash) ──────────────────
 
 class GeminiProvider(LLMProvider):
     """
-    Google Gemini via google-generativeai SDK.
+    Google Gemini via the current google-genai SDK (v2+).
     Free API key: https://ai.google.dev
-    Default model: gemini-1.5-flash (fast + free tier)
+    Default model: gemini-2.0-flash (fast + free tier)
+    Install: pip install google-genai
     """
 
     def __init__(self):
-        import google.generativeai as genai
-        genai.configure(api_key=settings.GEMINI_API_KEY)
-        self.model = genai.GenerativeModel(
-            settings.GEMINI_MODEL,
-            generation_config={"response_mime_type": "application/json"},
-        )
+        from google import genai
+        from google.genai import types
+        self._types = types
+        self.client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        self.model = settings.GEMINI_MODEL
 
     def complete(self, prompt: str, max_tokens: int = 2048) -> str:
-        response = self.model.generate_content(prompt)
+        response = self.client.models.generate_content(
+            model=self.model,
+            contents=prompt,
+            config=self._types.GenerateContentConfig(
+                response_mime_type="application/json",
+                max_output_tokens=max_tokens,
+                temperature=0.2,
+            ),
+        )
         return response.text
 
 

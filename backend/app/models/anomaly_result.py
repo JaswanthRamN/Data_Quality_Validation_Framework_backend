@@ -25,7 +25,7 @@ class AnomalyResult(Base):
         lower_bound: Lower threshold/bound for anomaly detection
         upper_bound: Upper threshold/bound for anomaly detection
         threshold: Detection threshold used (for z-score method)
-        metadata: Additional metadata as JSON (e.g., statistics used in detection)
+        extra_metadata: Additional metadata as JSON (e.g., statistics used in detection)
         created_at: Timestamp when the record was created
         updated_at: Timestamp when the record was last updated
     """
@@ -42,12 +42,12 @@ class AnomalyResult(Base):
     lower_bound = Column(Float, nullable=True)
     upper_bound = Column(Float, nullable=True)
     threshold = Column(Float, nullable=True)
-    metadata = Column(JSON, nullable=True)  # Additional context (mean, std_dev, q1, q3, iqr, etc.)
+    extra_metadata = Column(JSON, nullable=True)  # Additional context (mean, std_dev, q1, q3, iqr, etc.)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    dataset = relationship("Dataset", back_populates="anomaly_results")
+    dataset = relationship("Dataset")
     
     def __repr__(self):
         return f"<AnomalyResult(id={self.id}, dataset_id={self.dataset_id}, method={self.detection_method}, is_anomaly={self.is_anomaly})>"
@@ -65,7 +65,7 @@ class AnomalyResult(Base):
             "lower_bound": self.lower_bound,
             "upper_bound": self.upper_bound,
             "threshold": self.threshold,
-            "metadata": self.metadata,
+            "extra_metadata": self.extra_metadata,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }

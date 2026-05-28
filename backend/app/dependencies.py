@@ -4,7 +4,7 @@ Includes database sessions, authentication, and authorization checks.
 """
 
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthCredentials
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials as HTTPAuthCredentials
 from jose import JWTError
 from sqlalchemy.orm import Session
 from app.database import get_db

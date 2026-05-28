@@ -12,7 +12,7 @@ class ValidationCreate(BaseModel):
     """Schema for validation result creation request."""
     dataset_id: int
     validation_type: str = Field(..., min_length=1, max_length=50)
-    status: str = Field(..., regex="^(PASSED|FAILED|WARNING)$")
+    status: str = Field(..., pattern="^(PASSED|FAILED|WARNING)$")
     passed_count: int = Field(0, ge=0)
     failed_count: int = Field(0, ge=0)
     pass_rate: float = Field(0.0, ge=0.0, le=100.0)
@@ -24,7 +24,7 @@ class ValidationCreate(BaseModel):
 
 class ValidationUpdate(BaseModel):
     """Schema for validation result update request."""
-    status: Optional[str] = Field(None, regex="^(PASSED|FAILED|WARNING)$")
+    status: Optional[str] = Field(None, pattern="^(PASSED|FAILED|WARNING)$")
     passed_count: Optional[int] = Field(None, ge=0)
     failed_count: Optional[int] = Field(None, ge=0)
     pass_rate: Optional[float] = Field(None, ge=0.0, le=100.0)

@@ -15,7 +15,7 @@ from app.models.daily_report import DailyReport
 from app.schemas.report_schema import DailyReportResponse, DailyReportSummary
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/reports", tags=["reports"])
+router = APIRouter(prefix="/api/reports", tags=["reports"])
 
 
 @router.get("/latest", response_model=DailyReportResponse)

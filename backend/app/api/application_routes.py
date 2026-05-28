@@ -23,7 +23,7 @@ from app.schemas.application_schema import (
 )
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/applications", tags=["applications"])
+router = APIRouter(prefix="/api/applications", tags=["applications"])
 
 
 @router.post("/", response_model=ApplicationResponse, status_code=201)

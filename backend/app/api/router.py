@@ -13,7 +13,7 @@ from app.api import (
     report_routes,
 )
 
-api_router = APIRouter(prefix="/api")
+api_router = APIRouter()
 
 # Core data quality routes
 api_router.include_router(auth_routes.router)

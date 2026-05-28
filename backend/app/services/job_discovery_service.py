@@ -13,6 +13,17 @@ from app.schemas.job_schema import JobCreate
 
 logger = logging.getLogger(__name__)
 
+USER_CORE_SKILLS = [
+    "sql", "python", "pandas", "numpy", "power bi", "tableau", "excel",
+    "dbt", "airflow", "snowflake", "redshift", "postgresql", "mysql",
+    "aws", "s3", "lambda", "spark", "pyspark", "databricks",
+    "salesforce", "sap", "netsuite", "erp", "etl", "elt",
+    "scikit-learn", "machine learning", "regression", "a/b testing",
+    "time series", "forecasting", "data modeling", "data warehousing",
+    "looker", "metabase", "google analytics", "bigquery", "azure",
+    "r", "statistics", "data visualization", "dashboard",
+]
+
 # Canonical role category mapping from job title keywords
 ROLE_CATEGORY_MAP = {
     "analytics engineer": "Analytics Engineer",
@@ -151,10 +162,17 @@ def parse_indeed_search_results(markdown_text: str, location: str) -> List[dict]
         job_id_match = re.search(r"jk=([a-z0-9]+)", apply_url)
         job_id = job_id_match.group(1) if job_id_match else ""
 
-        # Extract company/location from bold metadata line
-        meta_match = re.search(r"\*\*([^*]+)\*\*\s*\|?\s*([^|\n]+)?", block)
-        company = meta_match.group(1).strip() if meta_match else "Unknown"
-        location_found = meta_match.group(2).strip() if meta_match and meta_match.group(2) else location
+        # Handle "**Company:** Name **Location:** Place" style metadata
+        company_kv = re.search(r"\*\*Company:?\*\*\s*([^\n*|]+)", block, re.IGNORECASE)
+        location_kv = re.search(r"\*\*Location:?\*\*\s*([^\n*|]+)", block, re.IGNORECASE)
+        if company_kv:
+            company = company_kv.group(1).strip().rstrip("*").strip()
+            location_found = location_kv.group(1).strip().rstrip("*").strip() if location_kv else location
+        else:
+            # Fallback: plain "**Company** | Location" style
+            meta_match = re.search(r"\*\*([^*:]+)\*\*\s*\|?\s*([^|\n]+)?", block)
+            company = meta_match.group(1).strip() if meta_match else "Unknown"
+            location_found = meta_match.group(2).strip() if meta_match and meta_match.group(2) else location
 
         # Extract salary if present
         salary_match = re.search(r"\$[\d,]+(?:\s*[-–]\s*\$[\d,]+)?(?:\s*(?:a year|/yr|/year|annually))?", block)

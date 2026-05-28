@@ -6,10 +6,12 @@ Sets up the application with middleware, CORS, routes, and database tables.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from sqlalchemy import inspect
 from app.config import settings
-from app.database import engine, Base, get_db
+from app.database import engine, get_db
+from app.models.base import Base
 from app.core.middleware import setup_middleware
 from app.api.router import api_router
 from app.utils.logger import logger
@@ -108,10 +110,10 @@ async def health_check():
 async def general_exception_handler(request, exc):
     """Global exception handler."""
     logger.error(f"Unhandled exception: {str(exc)}")
-    return {
-        "detail": "Internal server error",
-        "status": 500
-    }
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"}
+    )
 
 
 if __name__ == "__main__":

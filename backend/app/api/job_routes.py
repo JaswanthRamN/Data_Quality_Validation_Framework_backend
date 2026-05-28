@@ -21,7 +21,7 @@ from app.services.job_discovery_service import JobDiscoveryService
 from app.services.ats_analysis_service import ATSAnalysisService
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/jobs", tags=["jobs"])
+router = APIRouter(prefix="/api/jobs", tags=["jobs"])
 
 _discovery_service = JobDiscoveryService()
 _ats_service = ATSAnalysisService()

@@ -12,6 +12,7 @@ Configure AI_PROVIDER in .env:
 """
 
 import logging
+import re
 import time
 from typing import Optional
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -89,7 +90,12 @@ class FallbackATSAnalyzer:
         missing = [s for s in required if s not in resume_lower]
         skill_match_pct = (len(matched) / len(required) * 100) if required else 80.0
 
-        extra_missing = [kw for kw in keywords if kw not in resume_lower][:10]
+        # Filter TF-IDF noise: skip purely numeric tokens and single characters
+        clean_keywords = [
+            kw for kw in keywords
+            if not re.fullmatch(r"[\d\s,.$/-]+", kw) and len(kw) > 2
+        ]
+        extra_missing = [kw for kw in clean_keywords if kw not in resume_lower][:10]
         missing_keywords = list(dict.fromkeys(missing + extra_missing))[:12]
 
         return {

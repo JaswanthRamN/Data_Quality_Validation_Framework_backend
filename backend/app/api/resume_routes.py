@@ -16,7 +16,7 @@ from app.schemas.resume_schema import ResumeCreate, ResumeResponse, ResumeVersio
 from app.services.job_discovery_service import USER_CORE_SKILLS
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/resume", tags=["resume"])
+router = APIRouter(prefix="/api/resume", tags=["resume"])
 
 
 @router.post("/", response_model=ResumeResponse, status_code=201)

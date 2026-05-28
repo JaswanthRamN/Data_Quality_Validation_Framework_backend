@@ -384,11 +384,11 @@ def submit_batch_validation_task(
 ) -> Dict[str, Any]:
     """
     Submit a batch validation task for multiple datasets.
-    
+
     Args:
         dataset_ids: List of dataset IDs to validate
         validation_config: Validation configuration
-    
+
     Returns:
         Dictionary with task_id and submission status
     """
@@ -397,11 +397,11 @@ def submit_batch_validation_task(
             args=[dataset_ids, validation_config],
             countdown=0,
         )
-        
+
         logger.info(
             f"Batch validation task submitted: {task.id} for {len(dataset_ids)} datasets"
         )
-        
+
         return {
             "task_id": task.id,
             "dataset_ids": dataset_ids,
@@ -411,3 +411,202 @@ def submit_batch_validation_task(
     except Exception as e:
         logger.error(f"Error submitting batch validation task: {str(e)}")
         raise
+
+
+# ── Job Search Automation Tasks ───────────────────────────────────────────────
+
+@celery_app.task(name="process_job_search_results")
+def process_job_search_results(
+    raw_markdown: str,
+    role: str,
+    location: str,
+) -> Dict[str, Any]:
+    """
+    Process raw Indeed MCP search results and upsert jobs to the database.
+    Called from the job routes after the MCP tool returns results.
+
+    Args:
+        raw_markdown: Raw markdown text from Indeed MCP search_jobs tool
+        role: Job role that was searched
+        location: Location that was searched
+
+    Returns:
+        Dict with created/skipped counts
+    """
+    db = SessionLocal()
+    try:
+        from app.services.job_discovery_service import JobDiscoveryService
+        from app.crud.job_crud import upsert_jobs_batch
+
+        service = JobDiscoveryService()
+        jobs = service.process_search_results(raw_markdown, role, location)
+        created, skipped = upsert_jobs_batch(db, jobs)
+
+        logger.info(
+            f"Job discovery [{role} / {location}]: {created} new, {skipped} skipped"
+        )
+        return {
+            "status": "completed",
+            "role": role,
+            "location": location,
+            "created": created,
+            "skipped": skipped,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+    except Exception as e:
+        logger.error(f"Job processing failed [{role}/{location}]: {e}", exc_info=True)
+        raise
+    finally:
+        db.close()
+
+
+@celery_app.task(base=DatabaseTask, bind=True, name="analyze_new_jobs_batch")
+def analyze_new_jobs_batch(
+    self,
+    user_id: int = 1,
+    db: Optional[Session] = None,
+) -> Dict[str, Any]:
+    """
+    Run ATS analysis on unscored jobs using the master resume from config.
+    Scores each job and stores results.
+
+    Args:
+        user_id: User whose resume to use for analysis
+        db: Database session (injected by DatabaseTask)
+
+    Returns:
+        Dict with analysis counts and summary
+    """
+    try:
+        from app.services.ats_analysis_service import ATSAnalysisService
+        from app.services.job_scoring_service import JobScoringService
+        from app.crud.job_crud import get_unanalyzed_jobs, update_job_analysis
+        from app.crud.resume_crud import get_active_resume, create_resume_version
+        from app.schemas.job_schema import JobUpdate
+
+        self.update_state(state="PROGRESS", meta={"status": "Loading resume"})
+
+        # Prefer DB resume; fall back to config
+        resume = get_active_resume(db, user_id)
+        resume_text = (resume.raw_text if resume else None) or settings.MASTER_RESUME_TEXT
+        if not resume_text:
+            logger.warning("No master resume found — skipping ATS analysis")
+            return {"status": "skipped", "reason": "no_resume"}
+
+        jobs = get_unanalyzed_jobs(db, limit=50)
+        if not jobs:
+            logger.info("No unanalyzed jobs found")
+            return {"status": "completed", "analyzed": 0}
+
+        self.update_state(
+            state="PROGRESS",
+            meta={"status": f"Analyzing {len(jobs)} jobs", "total": len(jobs)},
+        )
+
+        ats_service = ATSAnalysisService()
+        scoring_service = JobScoringService()
+
+        job_descriptions = [(j.id, j.description or j.title) for j in jobs]
+        analyses = ats_service.batch_analyze(resume_text, job_descriptions)
+
+        analyzed = 0
+        for job in jobs:
+            analysis = analyses.get(job.id, {})
+            if "error" in analysis:
+                continue
+
+            composite = scoring_service.score_job(job, analysis)
+            update = JobUpdate(
+                ats_score=analysis.get("ats_score"),
+                skill_match_pct=analysis.get("skill_match_pct"),
+                missing_keywords=analysis.get("missing_keywords"),
+                composite_score=composite,
+                raw_analysis=analysis,
+            )
+            update_job_analysis(db, job.id, update)
+
+            # Persist tailored resume version if bullets were generated
+            if resume and analysis.get("tailored_bullets"):
+                create_resume_version(
+                    db,
+                    master_id=resume.id,
+                    job_id=job.id,
+                    tailored_bullets=analysis.get("tailored_bullets"),
+                    tailored_summary=analysis.get("tailored_summary"),
+                    ats_improvements=analysis.get("missing_keywords"),
+                )
+            analyzed += 1
+
+        logger.info(f"ATS analysis complete: {analyzed}/{len(jobs)} jobs scored")
+        return {
+            "status": "completed",
+            "analyzed": analyzed,
+            "ai_available": ats_service.ai_available,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
+    except Exception as e:
+        logger.error(f"ATS batch analysis failed: {e}", exc_info=True)
+        self.update_state(state="FAILURE", meta={"error": str(e)})
+        raise
+
+
+@celery_app.task(name="generate_daily_job_report")
+def generate_daily_job_report(user_id: int = 1) -> Dict[str, Any]:
+    """
+    Build and persist the daily job search summary report.
+    Runs after analyze_new_jobs_batch completes.
+
+    Args:
+        user_id: User to generate the report for
+
+    Returns:
+        Dict with report metadata
+    """
+    db = SessionLocal()
+    try:
+        from app.services.report_generation_service import ReportGenerationService
+
+        service = ReportGenerationService()
+        report = service.generate(db, user_id)
+
+        logger.info(
+            f"Daily report generated: {report.total_new_jobs} jobs, "
+            f"report_id={report.id}, date={report.report_date}"
+        )
+        return {
+            "status": "completed",
+            "report_id": report.id,
+            "report_date": str(report.report_date),
+            "total_jobs": report.total_new_jobs,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+    except Exception as e:
+        logger.error(f"Daily report generation failed: {e}", exc_info=True)
+        raise
+    finally:
+        db.close()
+
+
+# ── Celery Beat Schedule ──────────────────────────────────────────────────────
+
+# Add job search automation tasks to the beat schedule.
+# These are chained: analyze runs 30 min after scrape, report runs 30 min after analyze.
+# Scraping itself is triggered via API (POST /api/jobs/trigger-scrape) since the
+# Indeed MCP tool is only callable from the Claude agent context.
+celery_app.conf.beat_schedule = {
+    "analyze-new-jobs-daily": {
+        "task": "analyze_new_jobs_batch",
+        "schedule": 3600 * 24,  # once per day (after manual/API scrape trigger)
+        "kwargs": {"user_id": 1},
+    },
+    "generate-daily-report": {
+        "task": "generate_daily_job_report",
+        "schedule": 3600 * 24,  # once per day
+        "kwargs": {"user_id": 1},
+    },
+    "cleanup-old-validations": {
+        "task": "cleanup_old_validation_results",
+        "schedule": 3600 * 24 * 7,  # weekly
+    },
+}

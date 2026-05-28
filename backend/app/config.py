@@ -4,7 +4,7 @@ Uses Pydantic for validation and type safety.
 """
 
 from pydantic_settings import BaseSettings
-from typing import Optional
+from typing import Optional, List
 import os
 
 
@@ -44,6 +44,10 @@ class Settings(BaseSettings):
     ENABLE_ASYNC_TASKS: bool = True
     ENABLE_CACHING: bool = True
 
+    # Celery Settings
+    CELERY_BROKER_URL: str = "redis://localhost:6379/0"
+    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/0"
+
     # Redis Caching Settings
     REDIS_ENABLED: bool = True
     REDIS_HOST: str = "localhost"
@@ -56,6 +60,101 @@ class Settings(BaseSettings):
     REDIS_DATASET_TTL: int = 7200  # 2 hours
     REDIS_ANOMALY_TTL: int = 1800  # 30 minutes
     REDIS_SESSION_TTL: int = 86400  # 24 hours
+
+    # ── Job Search Automation ────────────────────────────────────────────────
+
+    # Anthropic Claude — optional; system falls back to TF-IDF scoring if empty
+    ANTHROPIC_API_KEY: str = ""
+
+    # Master resume text — paste full resume here (supports multiline via env file)
+    MASTER_RESUME_TEXT: str = (
+        "Jaswanth Ram Nagabhyrava | Data Analyst | Baltimore, MD | "
+        "Skills: SQL (Advanced), Python (Pandas, NumPy), Power BI, Tableau, "
+        "ETL/ELT Pipelines, dbt, Apache Airflow, Snowflake, Redshift, PostgreSQL, "
+        "MySQL, SQL Server, AWS (S3, Lambda), Salesforce, ERP (SAP, NetSuite), "
+        "Time Series Forecasting, Regression Analysis, A/B Testing, "
+        "Git, Docker, Jira, Data Quality Checks, KPI Tracking, Dashboard Development. "
+        "Experience: Data Analyst at Rishi Inc (Mar 2024-Present) — Built Power BI dashboards "
+        "reducing manual reporting by 45%; designed SQL pipelines integrating Salesforce and ERP "
+        "processing 500K+ records/month improving accuracy by 30%; developed Python ETL workflows; "
+        "implemented automated refresh pipelines with data quality checks. "
+        "Data Analyst at Pioneer Auto World (Aug 2021-Dec 2022) — Consolidated sales/service/inventory "
+        "datasets cutting reporting prep by 60%; built Tableau dashboards improving operational visibility "
+        "by 40%; applied time-series forecasting improving planning accuracy by 25%; automated monthly "
+        "reporting from 3 hours to 20 minutes; delivered $28K quarterly cost savings. "
+        "Education: MS Information Systems UMBC. "
+        "Projects: Baltimore Crime Analysis (1M+ records, 90% reporting reduction), "
+        "F1 Lap Time Prediction (93% R2), Off-Task Behavior Prediction (ML, Flask, F1 +12%)."
+    )
+
+    # Job search target configuration
+    JOB_TARGET_ROLES: List[str] = [
+        "Data Analyst",
+        "Business Intelligence Analyst",
+        "Business Analyst",
+        "Product Analyst",
+        "Reporting Analyst",
+        "Analytics Engineer",
+        "Operations Analyst",
+        "Revenue Operations Analyst",
+        "Supply Chain Analyst",
+        "Procurement Analyst",
+    ]
+    JOB_TARGET_LOCATIONS: List[str] = [
+        "remote",
+        "California",
+        "Washington",
+        "Oregon",
+        "Colorado",
+        "Texas",
+        "Illinois",
+        "Virginia",
+        "New York",
+        "New Jersey",
+        "Massachusetts",
+        "Maryland",
+        "Georgia",
+        "Utah",
+        "Minnesota",
+    ]
+    JOB_EXCLUSION_KEYWORDS: List[str] = [
+        "security clearance",
+        "clearance required",
+        "secret clearance",
+        "top secret",
+        "ITAR",
+        "US citizen only",
+        "must be a US citizen",
+        "public trust",
+        "government only",
+        "C2C only",
+        "corp to corp only",
+    ]
+    JOB_SPONSORSHIP_KEYWORDS: List[str] = [
+        "sponsor",
+        "h1b",
+        "h-1b",
+        "visa sponsorship",
+        "work authorization",
+        "OPT",
+        "CPT",
+    ]
+
+    # Composite scoring weights (must sum to 1.0)
+    SCORE_WEIGHT_ATS: float = 0.30
+    SCORE_WEIGHT_SPONSORSHIP: float = 0.20
+    SCORE_WEIGHT_REMOTE: float = 0.15
+    SCORE_WEIGHT_SALARY: float = 0.15
+    SCORE_WEIGHT_SKILLS: float = 0.10
+    SCORE_WEIGHT_COMPANY: float = 0.05
+    SCORE_WEIGHT_GROWTH: float = 0.05
+
+    # Salary normalization band for scoring (USD)
+    SALARY_SCORE_MIN: float = 80000.0
+    SALARY_SCORE_MAX: float = 160000.0
+
+    # Notion job tracking database ID (populated after first run)
+    NOTION_JOB_DATABASE_ID: str = ""
 
     class Config:
         env_file = ".env"

@@ -18,6 +18,16 @@ from app.utils.logger import logger
 # Create database tables on startup
 def create_tables():
     """Create all database tables defined in models."""
+    # Ensure all models are imported so SQLAlchemy registers them with Base.metadata
+    import app.models.user  # noqa: F401
+    import app.models.dataset  # noqa: F401
+    import app.models.validation_result  # noqa: F401
+    import app.models.anomaly_result  # noqa: F401
+    import app.models.job  # noqa: F401
+    import app.models.resume  # noqa: F401
+    import app.models.job_application  # noqa: F401
+    import app.models.daily_report  # noqa: F401
+
     try:
         Base.metadata.create_all(bind=engine)
         logger.info("Database tables created/verified successfully")

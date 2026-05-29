@@ -1,0 +1,12 @@
+Place your resume PDF file here with the exact name:
+
+  Jaswanth_Ram_Resume.pdf
+
+The Resume section download button and Hero "Download Resume" button both
+link to /Jaswanth_Ram_Resume.pdf which resolves to this public/ folder.
+
+Steps:
+1. Export your resume as a PDF
+2. Rename it to: Jaswanth_Ram_Resume.pdf
+3. Drop it into this folder (portfolio/public/)
+4. Delete this text file
